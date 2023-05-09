@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useState } from "react"
-import { projectFirestore, timestamp } from "../firebase/config"
+import { projectFireStore, timestamp } from "../firebase/config"
 
 let initialState = {
   document: null,
@@ -16,6 +16,9 @@ const firestoreReducer = (state, action) => {
       return { isPending: false, document: action.payload, success: true, error: null }
     case 'DELETED_DOCUMENT':
       return { isPending: false, document: null, success: true, error: null }
+      case 'UPDATED_DOCUMENT':
+      return { isPending: false, document: null, success: true, error: null }
+
     case 'ERROR':
       return { isPending: false, document: null, success: false, error: action.payload }
     default:
@@ -28,7 +31,7 @@ export const useFirestore = (collection) => {
   const [isCancelled, setIsCancelled] = useState(false)
 
   // collection ref
-  const ref = projectFirestore.collection(collection)
+  const ref = projectFireStore.collection(collection)
 
   // only dispatch is not cancelled
   const dispatchIfNotCancelled = (action) => {
@@ -44,6 +47,7 @@ export const useFirestore = (collection) => {
     try {
       const createdAt = timestamp.fromDate(new Date())
       const addedDocument = await ref.add({ ...doc, createdAt })
+
       dispatchIfNotCancelled({ type: 'ADDED_DOCUMENT', payload: addedDocument })
     }
     catch (err) {
@@ -64,10 +68,25 @@ export const useFirestore = (collection) => {
     }
   }
 
+
+  // update documents 
+const updateDocument = async (id, updates) => {
+dispatch({type: 'IS_PENDING'})
+
+try {
+  const updatedDocument = await ref.doc(id).update(updates)
+  dispatchIfNotCancelled({type: 'UPDATED_DOCUMENT', PAYLOAD: updateDocument})
+  return updatedDocument
+
+  } catch (err) {
+    dispatchIfNotCancelled({type: 'ERROR', payload: err.message})
+  }
+} 
+
   useEffect(() => {
     return () => setIsCancelled(true)
   }, [])
 
-  return { addDocument, deleteDocument, response }
+  return { addDocument, deleteDocument, updateDocument, response }
 
 }
